@@ -1,36 +1,57 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
-import { RFValue } from 'react-native-responsive-fontsize';
 
 import { useNavigation } from '@react-navigation/native';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from 'styled-components';
+
+import { api } from '../../services/api';
+import { CarDTO } from '../../dtos/CarDTO';
 
 import Logo from '../../assets/logo.svg';
+
+import { Car } from '../../components/Car';
+import { Load } from '../../components/Load';
 
 import {
   Container,
   Header,
   TotalCars,
   HeaderContent,
-  CarList
+  CarList,
+  MyCarsButton
 } from './styles';
-import { Car } from '../../components/Car';
 
 export function Home() {
+  const [cars, setCars] = useState<CarDTO[]>([]);
+  const [load, setLoad] = useState(true);
+
   const navigation = useNavigation();
+  const theme = useTheme();
 
-  const carData = {
-    brand: 'audi',
-    name: 'RS 5 Coupe',
-    rent: {
-      period: 'Ao dia',
-      price: 120,
-    },
-    thumbnail: 'https://freepngimg.com/thumb/audi/35227-5-audi-rs5-red.png',
+  function handleCarDetails(car: CarDTO) {
+    navigation.navigate('CarDetails', { car });
   }
 
-  function handleCarDetails() {
-    navigation.navigate('CarDetails')
+  function handleOpenMyCars() {
+    navigation.navigate('MyCars');
   }
+
+  useEffect(() => {
+    async function fetchCars() {
+      try {
+        const response = await api.get('/cars');
+        setCars(response.data)
+      } catch (error) {
+        console.log(error)
+      } finally {
+        setLoad(false);
+      }
+    }
+
+    fetchCars();
+  }, [])
 
   return (
     <Container>
@@ -50,18 +71,26 @@ export function Home() {
           </TotalCars>
         </HeaderContent>
       </Header>
+      { load ? <Load /> :
+        <CarList 
+          data={cars}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => 
+            <Car 
+              data={item} 
+              onPress={() => handleCarDetails(item)}
+            />
+          }
+        />
+      }
 
-      <CarList 
-        data={[1,2,3,4,5,6,7]}
-        keyExtractor={item => String(item)}
-        renderItem={({ item }) => 
-          <Car 
-            data={carData} 
-            onPress={handleCarDetails}
-          />
-        }
-      />
-
+      <MyCarsButton onPress={handleOpenMyCars}>
+        <Ionicons 
+          name="ios-car-sport"
+          size={36}
+          color={theme.colors.shape}
+        />
+      </MyCarsButton>
     </Container>
   );
 }
